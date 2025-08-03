@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, CheckCircle2, Play, Pause } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, Play, Pause, Archive, RotateCcw } from 'lucide-react';
 import { Project } from '../types';
 import { Badge } from './ui/Badge';
 import { ProgressBar } from './ui/ProgressBar';
@@ -10,12 +10,20 @@ interface ProjectCardProps {
   project: Project;
   onSelect: (project: Project) => void;
   onUpdateStatus: (projectId: string, status: Project['status']) => void;
+  onArchive?: (projectId: string) => void;
+  onRestore?: (projectId: string) => void;
+  showArchiveButton?: boolean;
+  showRestoreButton?: boolean;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   onSelect,
-  onUpdateStatus
+  onUpdateStatus,
+  onArchive,
+  onRestore,
+  showArchiveButton = false,
+  showRestoreButton = false
 }) => {
   const progress = calculateProjectProgress(project);
   const activeMilestone = project.milestones.find(m => m.status === 'active');
@@ -31,6 +39,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       newStatus = 'active';
     }
     onUpdateStatus(project.id, newStatus);
+  };
+
+  const handleArchive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onArchive?.(project.id);
+  };
+
+  const handleRestore = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRestore?.(project.id);
   };
 
   return (
@@ -90,31 +108,57 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <span className="text-xs text-gray-400">
           Créé le {formatDate(project.createdAt)}
         </span>
-        <Button
-          size="sm"
-          variant={project.status === 'active' ? 'outline' : 'primary'}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStatusToggle();
-          }}
-        >
-          {project.status === 'active' ? (
-            <>
-              <Pause size={14} className="mr-1" />
-              Pause
-            </>
-          ) : project.status === 'draft' ? (
-            <>
-              <Play size={14} className="mr-1" />
-              Démarrer
-            </>
-          ) : (
-            <>
-              <Play size={14} className="mr-1" />
-              Reprendre
-            </>
+        <div className="flex items-center gap-2">
+          {showRestoreButton && onRestore && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRestore}
+            >
+              <RotateCcw size={14} className="mr-1" />
+              Restaurer
+            </Button>
           )}
-        </Button>
+          
+          {showArchiveButton && onArchive && project.status !== 'archived' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleArchive}
+            >
+              <Archive size={14} className="mr-1" />
+              Archiver
+            </Button>
+          )}
+
+          {!showArchiveButton && !showRestoreButton && (
+            <Button
+              size="sm"
+              variant={project.status === 'active' ? 'outline' : 'primary'}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusToggle();
+              }}
+            >
+              {project.status === 'active' ? (
+                <>
+                  <Pause size={14} className="mr-1" />
+                  Pause
+                </>
+              ) : project.status === 'draft' ? (
+                <>
+                  <Play size={14} className="mr-1" />
+                  Démarrer
+                </>
+              ) : (
+                <>
+                  <Play size={14} className="mr-1" />
+                  Reprendre
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

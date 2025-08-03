@@ -4,15 +4,13 @@ import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 
 interface ProjectFormProps {
-  isOpen: boolean;
-  onClose: () => void;
   onSubmit: (project: Omit<Project, 'id' | 'milestones' | 'createdAt' | 'updatedAt'>) => void;
+  onCancel: () => void;
 }
 
 export const ProjectForm: React.FC<ProjectFormProps> = ({
-  isOpen,
-  onClose,
-  onSubmit
+  onSubmit,
+  onCancel
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -34,7 +32,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       status: 'active',
       priority: 'medium'
     });
-    onClose();
+    onCancel();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -46,7 +44,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Créer un nouveau projet" size="lg">
+    <Modal isOpen={true} onClose={onCancel} title="Créer un nouveau projet" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -105,7 +103,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
               id="estimatedDuration"
               name="estimatedDuration"
               min="1"
-              max="365"
               value={formData.estimatedDuration}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -125,13 +122,13 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
             >
               <option value="low">Faible</option>
               <option value="medium">Moyenne</option>
-              <option value="high">Haute</option>
+              <option value="high">Élevée</option>
             </select>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="flex justify-end space-x-3 pt-6">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
           <Button type="submit">

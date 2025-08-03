@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, Archive, RotateCcw } from 'lucide-react';
 import { Project, Alert } from '../types';
 import { ProjectCard } from './ProjectCard';
 import { ProjectForm } from './ProjectForm';
@@ -12,21 +12,34 @@ interface DashboardProps {
   onCreateProject: (project: Omit<Project, 'id' | 'milestones' | 'createdAt' | 'updatedAt'>) => void;
   onSelectProject: (project: Project) => void;
   onUpdateProject: (projectId: string, updates: Partial<Project>) => void;
+  onArchiveProject: (projectId: string) => void;
+  onRestoreProject: (projectId: string) => void;
 }
+
+type TabType = 'active' | 'archived';
 
 export const Dashboard: React.FC<DashboardProps> = ({
   projects,
   alerts,
   onCreateProject,
   onSelectProject,
-  onUpdateProject
+  onUpdateProject,
+  onArchiveProject,
+  onRestoreProject
 }) => {
   const [showProjectForm, setShowProjectForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('active');
 
-  const activeProjects = projects.filter(p => p.status === 'active');
-  const completedProjects = projects.filter(p => p.status === 'completed');
-  const pausedProjects = projects.filter(p => p.status === 'paused');
-  const draftProjects = projects.filter(p => p.status === 'draft');
+  const activeProjects = projects.filter(p => p.status !== 'archived');
+  const archivedProjects = projects.filter(p => p.status === 'archived');
+  const currentProjects = activeTab === 'active' ? activeProjects : archivedProjects;
+
+  const activeProjectsByStatus = {
+    active: activeProjects.filter(p => p.status === 'active'),
+    completed: activeProjects.filter(p => p.status === 'completed'),
+    paused: activeProjects.filter(p => p.status === 'paused'),
+    draft: activeProjects.filter(p => p.status === 'draft')
+  };
 
   const handleUpdateStatus = (projectId: string, status: Project['status']) => {
     onUpdateProject(projectId, { status });
@@ -59,8 +72,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <BarChart3 className="text-blue-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
-                <p className="text-gray-600 text-sm">Projets total</p>
+                <p className="text-2xl font-bold text-gray-900">{activeProjects.length}</p>
+                <p className="text-gray-600 text-sm">Projets actifs</p>
               </div>
             </div>
           </div>
@@ -71,7 +84,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <CheckCircle2 className="text-green-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{completedProjects.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{activeProjectsByStatus.completed.length}</p>
                 <p className="text-gray-600 text-sm">Terminés</p>
               </div>
             </div>
@@ -83,7 +96,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <Clock className="text-orange-600" size={24} />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{activeProjects.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{activeProjectsByStatus.active.length}</p>
                 <p className="text-gray-600 text-sm">En cours</p>
               </div>
             </div>
@@ -102,122 +115,183 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* Alertes */}
-        {alerts.length > 0 && (
-          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-8 rounded-r-lg">
-            <div className="flex items-center">
-              <AlertCircle className="text-orange-400 mr-3" size={20} />
+        {/* Onglets */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-6">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'active'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Projets Actifs ({activeProjects.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('archived')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'archived'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Archive className="inline w-4 h-4 mr-1" />
+                Archivés ({archivedProjects.length})
+              </button>
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'active' ? (
+              // Onglet Projets Actifs
               <div>
-                <h3 className="text-orange-800 font-medium">Alertes actives</h3>
-                <p className="text-orange-700 text-sm mt-1">
-                  Vous avez {alerts.length} alerte{alerts.length > 1 ? 's' : ''} nécessitant votre attention.
-                </p>
+                {/* Alertes */}
+                {alerts.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertes</h3>
+                    <div className="space-y-3">
+                      {alerts.map((alert) => (
+                        <div key={alert.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center">
+                            <AlertCircle className="text-red-500 mr-2" size={20} />
+                            <span className="text-red-800">{alert.message}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Projets par statut */}
+                <div className="space-y-8">
+                  {/* Projets en cours */}
+                  {activeProjectsByStatus.active.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">En cours</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeProjectsByStatus.active.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onSelect={onSelectProject}
+                            onUpdateStatus={handleUpdateStatus}
+                            onArchive={onArchiveProject}
+                            showArchiveButton={true}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projets en pause */}
+                  {activeProjectsByStatus.paused.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">En pause</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeProjectsByStatus.paused.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onSelect={onSelectProject}
+                            onUpdateStatus={handleUpdateStatus}
+                            onArchive={onArchiveProject}
+                            showArchiveButton={true}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projets terminés */}
+                  {activeProjectsByStatus.completed.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Terminés</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeProjectsByStatus.completed.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onSelect={onSelectProject}
+                            onUpdateStatus={handleUpdateStatus}
+                            onArchive={onArchiveProject}
+                            showArchiveButton={true}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projets brouillon */}
+                  {activeProjectsByStatus.draft.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Brouillons</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeProjectsByStatus.draft.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onSelect={onSelectProject}
+                            onUpdateStatus={handleUpdateStatus}
+                            onArchive={onArchiveProject}
+                            showArchiveButton={true}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message si aucun projet */}
+                  {activeProjects.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="text-gray-400 mb-4">
+                        <BarChart3 size={48} className="mx-auto" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun projet actif</h3>
+                      <p className="text-gray-500">Commencez par créer votre premier projet !</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              // Onglet Projets Archivés
+              <div>
+                {archivedProjects.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {archivedProjects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        onSelect={onSelectProject}
+                        onUpdateStatus={handleUpdateStatus}
+                        onRestore={onRestoreProject}
+                        showRestoreButton={true}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 mb-4">
+                      <Archive size={48} className="mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun projet archivé</h3>
+                    <p className="text-gray-500">Les projets archivés apparaîtront ici.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Projets en brouillon */}
-        {draftProjects.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Projets en brouillon</h2>
-              <Badge variant="default">{draftProjects.length}</Badge>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {draftProjects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onSelect={onSelectProject}
-                  onUpdateStatus={handleUpdateStatus}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Projets actifs */}
-        {activeProjects.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Projets actifs</h2>
-              <Badge variant="info">{activeProjects.length}</Badge>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeProjects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onSelect={onSelectProject}
-                  onUpdateStatus={handleUpdateStatus}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Projets en pause */}
-        {pausedProjects.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Projets en pause</h2>
-              <Badge variant="warning">{pausedProjects.length}</Badge>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pausedProjects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onSelect={onSelectProject}
-                  onUpdateStatus={handleUpdateStatus}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Projets terminés */}
-        {completedProjects.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Projets terminés</h2>
-              <Badge variant="success">{completedProjects.length}</Badge>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedProjects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onSelect={onSelectProject}
-                  onUpdateStatus={handleUpdateStatus}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* État vide */}
-        {projects.length === 0 && (
-          <div className="text-center py-16">
-            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <BarChart3 className="text-gray-400" size={32} />
-            </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Aucun projet pour le moment</h3>
-            <p className="text-gray-600 mb-6">Créez votre premier projet pour commencer à organiser vos idées entrepreneuriales.</p>
-            <Button onClick={() => setShowProjectForm(true)}>
-              <Plus size={20} className="mr-2" />
-              Créer mon premier projet
-            </Button>
-          </div>
-        )}
+        </div>
       </div>
 
-      <ProjectForm
-        isOpen={showProjectForm}
-        onClose={() => setShowProjectForm(false)}
-        onSubmit={onCreateProject}
-      />
+      {/* Modal de création de projet */}
+      {showProjectForm && (
+        <ProjectForm
+          onSubmit={onCreateProject}
+          onCancel={() => setShowProjectForm(false)}
+        />
+      )}
     </div>
   );
 };

@@ -5,10 +5,11 @@ export interface Project {
   description: string;
   estimatedDuration: number; // en jours
   milestones: Milestone[];
-  status: 'draft' | 'active' | 'completed' | 'paused';
+  status: 'draft' | 'active' | 'completed' | 'paused' | 'archived';
   priority: 'low' | 'medium' | 'high';
   createdAt: Date;
   updatedAt: Date;
+  archivedAt?: Date;
 }
 
 export interface Milestone {
